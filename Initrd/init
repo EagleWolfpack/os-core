@@ -37,6 +37,7 @@ glamor=false
 via=false
 localboot=false
 verbose=false
+debug=false
 
 ## MAIN ####################################################
 
@@ -95,7 +96,7 @@ getbootparams
 
 # Shut up or display figlet logo if not in quiet mode.
 # 
-grep -vwq quiet /proc/cmdline && $figlet && (echo ${BLUE}; cat /lib/consus.figlet; echo ${NORMAL}; sleep 1)
+grep -vwq quiet /proc/cmdline && $figlet && (echo ${BLUE}; cat /lib/pales.figlet; echo ${NORMAL}; sleep 1)
 
 ip addr add 127.0.0.1/8 dev lo
 ip link set dev lo up
@@ -123,7 +124,7 @@ if $localboot; then
     echo "${BLUE}Switching client to localboot ... ${NORMAL}"
     # enable mdev
     echo /sbin/mdev > /proc/sys/kernel/hotplug
-    for mod in ahci ext4 scsi_mod sd_mod sg fscache ata_generic ata_piix; do
+    for mod in ahci ext4 scsi_mod sd_mod sg fscache ata_generic ata_piix pata_via; do
 	$verbose && echo "... loading module $mod"
 	modprobe $mod;
     done
@@ -131,11 +132,13 @@ if $localboot; then
     > /proc/sys/kernel/hotplug
     LINK_RESOURCE=/dev/sda2
     mount -o,ro -t ext4 "$LINK_RESOURCE" $LINK
-    # debugshell
 else
     LINK_RESOURCE=$nfsroot
     mount -t nfs -o nolock -o ro -o retrans=10 -o vers=2 "$LINK_RESOURCE" $LINK
 fi
+
+# stop here in case of debug mode
+$debug && debugshell
 
 if [ $? -eq 0 ]; then
   echo "${GREEN}$LINK_RESOURCE mounted successfully on $LINK...${NORMAL}"
@@ -176,8 +179,8 @@ if [ $localboot -a -r $LINK/lb_updates/.apply_updates ]; then
     done
     rm -f $LINK/lb_updates/.apply_updates             # reset update state
     mount -o remount,ro $LINK                         # mount read only again
-    # debugshell
-    # set +x
+    # stop here in case of debug mode
+    $debug && debugshell
 fi
 
 
